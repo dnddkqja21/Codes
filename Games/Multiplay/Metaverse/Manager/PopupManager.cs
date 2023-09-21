@@ -15,13 +15,15 @@ public class PopupManager : MonoBehaviour
     public static PopupManager Instance { get { return instance; } }
 
     [SerializeField]
-    GameObject oneButtonPopup;
+    GameObject oneButtonPopupPrefab;
     [SerializeField]
-    GameObject twoButtonPopup;
+    GameObject twoButtonPopupPrefab;
 
-    TextMeshProUGUI warningText;
-    Button okBtn;
+    GameObject oneButtonPopup;
+    GameObject twoButtonPopup;
+    TextMeshProUGUI warningText;    
     Button[] buttons;
+    Image background;
 
     void Awake()
     {
@@ -38,15 +40,25 @@ public class PopupManager : MonoBehaviour
 
     public void ShowOneButtnPopup(string msg, Action onCloseCallback = null)
     {
-        GameObject temp = Instantiate(oneButtonPopup, GameObject.Find("Canvas").transform);
-        warningText = temp.GetComponentInChildren<TextMeshProUGUI>();
-        temp.SetActive(true);
+        if (oneButtonPopup == null)
+        {            
+            oneButtonPopup = Instantiate(oneButtonPopupPrefab, GameObject.Find("Canvas").transform);
+        }
+        else
+        {
+            oneButtonPopup.SetActive(true);
+            Color temp = background.color;
+            temp.a = 1;
+            background.color = temp;
+        }
+
+        warningText = oneButtonPopup.GetComponentInChildren<TextMeshProUGUI>();
         warningText.text = msg;
 
-        okBtn = temp.GetComponentInChildren<Button>();
-        okBtn.onClick.AddListener(() =>
+        buttons = oneButtonPopup.GetComponentsInChildren<Button>();
+        buttons[0].onClick.AddListener(() =>
         {
-            Destroy(temp);
+            StartCoroutine(OnFadeOut(oneButtonPopup));
 
             if (onCloseCallback != null)
             {
@@ -58,15 +70,22 @@ public class PopupManager : MonoBehaviour
     // 파라미터 (메시지, 취소버튼, 확인버튼)
     public void ShowTwoButtnPopup(string msg, Action onCloseCallback = null, Action onCloseCallbackSecond = null)
     {
-        GameObject temp = Instantiate(twoButtonPopup, GameObject.Find("Canvas").transform);
-        warningText = temp.GetComponentInChildren<TextMeshProUGUI>();
-        temp.SetActive(true);
+        if (twoButtonPopup == null)
+        {
+            twoButtonPopup = Instantiate(twoButtonPopupPrefab, GameObject.Find("Canvas").transform);
+        }
+        else
+        {
+            twoButtonPopup.SetActive(true);
+        }
+        
+        warningText = twoButtonPopup.GetComponentInChildren<TextMeshProUGUI>();      
         warningText.text = msg;
 
-        buttons = temp.GetComponentsInChildren<Button>();
+        buttons = twoButtonPopup.GetComponentsInChildren<Button>();
         buttons[0].onClick.AddListener(() =>
         {
-            Destroy(temp);
+            StartCoroutine(OnFadeOut(twoButtonPopup));
 
             if (onCloseCallback != null)
             {
@@ -75,12 +94,36 @@ public class PopupManager : MonoBehaviour
         });
         buttons[1].onClick.AddListener(() =>
         {
-            Destroy(temp);
+            StartCoroutine(OnFadeOut(twoButtonPopup));
 
             if (onCloseCallbackSecond != null)
             {
                 onCloseCallbackSecond.Invoke();
             }
         });
+    }
+
+    IEnumerator OnFadeOut(GameObject popup)
+    {
+        background = popup.GetComponent<Image>();
+        Color temp = background.color;
+
+        temp.a = 1;
+        background.color = temp;
+
+        yield return new WaitForSeconds(0.1f);
+
+
+        while (background.color.a > 0)
+        {
+            temp.a -= Time.deltaTime * 1f;
+            background.color = temp;
+            yield return null;
+        }
+
+        temp.a = 0;
+        background.color = temp;
+
+        popup.SetActive(false);
     }
 }
